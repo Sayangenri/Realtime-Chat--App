@@ -1,73 +1,81 @@
-import React, { useEffect, useState } from 'react'
-import ScrollToBottom from "react-scroll-to-bottom";
+import React, { useEffect, useState } from 'react';
+import ScrollToBottom from 'react-scroll-to-bottom';
+function Chat({ socket, username, room }) {
+    const [currentMessage, setCurrentMessage] = useState('');
+    const [messageList, setMessageList] = useState([]);
 
-function Chat({socket,username,room}) {
-    const [currentMessage, setCurrentMessage] = useState("");
-    const [messageList, setmessageList] = useState([]);
-
-
-    const sendMessage= async()=>{
-        if(currentMessage!=="")
-        {
-            const messageData ={
-                room : room,
+    const sendMessage = async () => {
+        if (currentMessage !== '') {
+            const messageData = {
+                room: room,
                 author: username,
-                message:currentMessage,
-                time: new Date(Date.now()).getHours() + ":" + new Date(Date.now()).getMinutes(),
+                message: currentMessage,
+                time: new Date(Date.now()).getHours() + ':' + new Date(Date.now()).getMinutes(),
             };
 
-            await socket.emit("send_message",messageData);
-            setmessageList((list)=>[...list,messageData])
+            await socket.emit('send_message', messageData);
+            setMessageList((list) => [...list, messageData]);
+            setCurrentMessage(''); // Clear the input after sending the message
         }
-    }
+    };
 
-    useEffect(()=>{
-        socket.on("recive_message",(data)=>{
-            setmessageList((list)=>[...list,data])
+    useEffect(() => {
+        const receiveMessageHandler = (data) => {
+            setMessageList((list) => [...list, data]);
+        };
 
-            })
-        },[socket]);
+        socket.on('recive_message', receiveMessageHandler);
+
+        // Clean up the event listener on component unmount
+        return () => {
+            socket.off('recive_message', receiveMessageHandler);
+        };
+    }, [socket]);
 
     return (
-       
-    <div className="chat-window">
-     <div className='chat-header'>        
-        <p>Live Chat</p>
-    </div>
-     <div className='chat-body'>
-     <ScrollToBottom className="message-container">
-          {messageList.map((messageContent) => {
-            return (
-              <div
-                className="message"
-                id={username === messageContent.author ? "you" : "other"}
-              >
-                <div>
-                  <div className="message-content">
-                    <p>{messageContent.message}</p>
-                  </div>
-                  <div className="message-meta">
-                    <p id="time">{messageContent.time}</p>
-                    <p id="author">{messageContent.author}</p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </ScrollToBottom></div>
-     <div className='chat-footer'>
-        <input type='text' 
-        value={currentMessage}
-        placeholder='Heyyy...'           onChange={(event) => {
-            setCurrentMessage(event.target.value);
-          }}
-          onKeyPress={(event) => {
-            event.key === "Enter" && sendMessage();
-          }}></input>
-        <button onClick={sendMessage}>&#9658;</button>
-     </div>
-    </div>
-  )
+        <div className="chat-window">
+            <div className="chat-header">
+                <p>Live Chat</p>
+            </div>
+            <div className="chat-body">
+                <ScrollToBottom className="message-container">
+                    {messageList.map((messageContent, index) => {
+                        return (
+                            <div
+                                key={index}
+                                className="message"
+                                id={username === messageContent.author ? 'you' : 'other'}
+                            >
+                                <div>
+                                    <div className="message-content">
+                                        <p>{messageContent.message}</p>
+                                    </div>
+                                    <div className="message-meta">
+                                        <p id="time">{messageContent.time}</p>
+                                        <p id="author">{messageContent.author}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </ScrollToBottom>
+            </div>
+            <div className="chat-footer">
+                <input
+                    type="text"
+                    value={currentMessage}
+                    placeholder="Heyyy..."
+                    onChange={(event) => {
+                        setCurrentMessage(event.target.value);
+                    }}
+                    onKeyPress={(event) => {
+                        event.key === 'Enter' && sendMessage();
+                    }}
+                />
+                <button onClick={sendMessage}>&#9658;</button>
+            </div>
+        </div>
+    );
 }
 
-export default Chat
+export default Chat;
