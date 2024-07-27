@@ -22,6 +22,12 @@ io.on("connection", (socket) => {
         socket.join(data);
 
         console.log(`User With id: ${socket.id} joined room : ${data}`);
+
+        socket.to(data.room).emit("user_joined", {
+            username: data.username,
+            room: data.room
+        });
+
     })
     
     socket.on("send_message",(data)=>{
@@ -32,6 +38,6 @@ io.on("connection", (socket) => {
     });
 });
 
-server.listen(3001, () => {
+server.listen(3001, "0.0.0.0", () => {
     console.log("Server Running on port 3001");
 });

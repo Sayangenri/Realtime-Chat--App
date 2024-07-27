@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import ScrollToBottom from 'react-scroll-to-bottom';
+
 function Chat({ socket, username, room }) {
     const [currentMessage, setCurrentMessage] = useState('');
     const [messageList, setMessageList] = useState([]);
@@ -15,22 +16,36 @@ function Chat({ socket, username, room }) {
 
             await socket.emit('send_message', messageData);
             setMessageList((list) => [...list, messageData]);
-            setCurrentMessage(''); // Clear the input after sending the message
+            setCurrentMessage('');
         }
     };
 
     useEffect(() => {
+        // Event handler functions
         const receiveMessageHandler = (data) => {
             setMessageList((list) => [...list, data]);
         };
 
-        socket.on('recive_message', receiveMessageHandler);
+        const userJoinedHandler = (data) => {
+            // Ensure a new message is added only once
+            if (!messageList.some(msg => msg.message === `${data.username} joined the chat`)) {
+                setMessageList((list) => [...list, { message: `${data.username} joined the chat`, time: '', author: 'System' }]);
+            }
+        };
 
-        // Clean up the event listener on component unmount
+        // Attach event listeners
+        socket.on('recive_message', receiveMessageHandler);
+        socket.on('user_joined', userJoinedHandler);
+
+        // Join the room when the component mounts
+        socket.emit('join_room', { username, room });
+
+        // Clean up the event listeners on component unmount
         return () => {
             socket.off('recive_message', receiveMessageHandler);
+            socket.off('user_joined', userJoinedHandler);
         };
-    }, [socket]);
+    }, [socket, username, room, messageList]);
 
     return (
         <div className="chat-window">
@@ -64,7 +79,7 @@ function Chat({ socket, username, room }) {
                 <input
                     type="text"
                     value={currentMessage}
-                    placeholder="Heyyy..."
+                    placeholder="Send...."
                     onChange={(event) => {
                         setCurrentMessage(event.target.value);
                     }}
